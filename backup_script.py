@@ -1,7 +1,9 @@
 import os
 import subprocess
 import datetime
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 import json
@@ -10,7 +12,11 @@ import urllib.parse
 # --- CONFIGURACIÓN ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 DRIVE_FOLDER_ID = os.environ.get('DRIVE_FOLDER_ID')
-SERVICE_ACCOUNT_JSON = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+
+# OAuth2 Credentials
+CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+REFRESH_TOKEN = os.environ.get('GOOGLE_REFRESH_TOKEN')
 
 def run_backup():
     try:
@@ -27,7 +33,7 @@ def run_backup():
         backup_filename = f"{date_str}.sql"
         print(f"🚀 Iniciando backup: {backup_filename}")
 
-        # 3. Ejecutar pg_dump con PGPASSWORD para evitar errores de conexión
+        # 3. Ejecutar pg_dump con PGPASSWORD
         env = os.environ.copy()
         env['PGPASSWORD'] = db_password
         
@@ -49,11 +55,19 @@ def run_backup():
 
         print("✅ Dump de la base de datos completado.")
 
-        # 4. Autenticarse con Google Drive
-        creds_dict = json.loads(SERVICE_ACCOUNT_JSON)
-        creds = service_account.Credentials.from_service_account_info(
-            creds_dict, scopes=['https://www.googleapis.com/auth/drive.file']
+        # 4. Autenticarse con Google Drive usando OAuth2 Refresh Token
+        creds = Credentials(
+            None,
+            refresh_token=REFRESH_TOKEN,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=CLIENT_ID,
+            client_secret=CLIENT_SECRET,
+            scopes=['https://www.googleapis.com/auth/drive.file']
         )
+        
+        if not creds.valid:
+            creds.refresh(Request())
+            
         service = build('drive', 'v3', credentials=creds)
 
         # 5. Subir el archivo a Google Drive
@@ -66,8 +80,7 @@ def run_backup():
         uploaded_file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id',
-            supportsAllDrives=True # Requerido para algunas configuraciones de compartición
+            fields='id'
         ).execute()
 
         print(f"✅ Backup subido a Drive con ID: {uploaded_file.get('id')}")
@@ -81,7 +94,7 @@ def run_backup():
         exit(1)
 
 if __name__ == "__main__":
-    if not DATABASE_URL or not DRIVE_FOLDER_ID or not SERVICE_ACCOUNT_JSON:
+    if not all([DATABASE_URL, DRIVE_FOLDER_ID, CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN]):
         print("❌ Faltan variables de entorno.")
         exit(1)
     run_backup()
