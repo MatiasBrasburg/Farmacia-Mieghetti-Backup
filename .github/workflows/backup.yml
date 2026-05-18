@@ -1,0 +1,38 @@
+name: Daily Database Backup to Google Drive
+
+on:
+  schedule:
+    # Corre a las 04:00 AM UTC (Ajustá según tu zona horaria)
+    # 04:00 AM Argentina es 07:00 AM UTC. 
+    # Si querés que sea a las 04:00 AM de Argentina, usa '0 7 * * *'
+    - cron: '0 7 * * *'
+  workflow_dispatch: # Permite correrlo manualmente para probar
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install PostgreSQL Client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+
+    - name: Install Dependencies
+      run: |
+        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+
+    - name: Run Backup Script
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
+        GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      run: python backup_script.py
