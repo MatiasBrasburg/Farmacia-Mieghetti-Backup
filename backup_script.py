@@ -66,7 +66,8 @@ def run_backup():
         uploaded_file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id'
+            fields='id',
+            supportsAllDrives=True # Requerido para algunas configuraciones de compartición
         ).execute()
 
         print(f"✅ Backup subido a Drive con ID: {uploaded_file.get('id')}")
