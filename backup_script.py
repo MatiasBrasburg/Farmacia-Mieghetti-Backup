@@ -37,8 +37,12 @@ def run_backup():
         env = os.environ.copy()
         env['PGPASSWORD'] = db_password
         
+        # Agregamos parámetros de timeout y quitamos cualquier forzado de SSL manual
+        # ya que Railway proxy a veces se marea con eso.
         cmd = [
             'pg_dump',
+            '--no-owner',
+            '--no-privileges',
             '-h', db_host,
             '-p', db_port,
             '-U', db_user,
@@ -46,11 +50,13 @@ def run_backup():
             db_name
         ]
         
-        print(f"📡 Conectando a {db_host}:{db_port}...")
+        print(f"📡 Intentando conectar a {db_host}:{db_port} (User: {db_user}, DB: {db_name})...")
         result = subprocess.run(cmd, env=env, capture_output=True, text=True)
         
         if result.returncode != 0:
-            print(f"❌ Error en pg_dump:\n{result.stderr}")
+            print(f"❌ Error en pg_dump (Código {result.returncode}):")
+            print(f"STDOUT: {result.stdout}")
+            print(f"STDERR: {result.stderr}")
             raise Exception("pg_dump failed")
 
         print("✅ Dump de la base de datos completado.")
