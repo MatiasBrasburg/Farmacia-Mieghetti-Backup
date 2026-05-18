@@ -14,21 +14,34 @@ SERVICE_ACCOUNT_JSON = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
 
 def run_backup():
     try:
-        # 1. Preparar la URL (asegurar SSL)
-        url = DATABASE_URL
-        if 'sslmode' not in url:
-            separator = '&' if '?' in url else '?'
-            url += f"{separator}sslmode=require"
-        
+        # 1. Parsear la DATABASE_URL
+        parsed = urllib.parse.urlparse(DATABASE_URL)
+        db_user = parsed.username
+        db_password = parsed.password
+        db_host = parsed.hostname
+        db_port = str(parsed.port)
+        db_name = parsed.path.lstrip('/')
+
         # 2. Crear el nombre del archivo con la fecha
         date_str = datetime.datetime.now().strftime("%d-%m-%Y")
         backup_filename = f"{date_str}.sql"
         print(f"🚀 Iniciando backup: {backup_filename}")
 
-        # 3. Ejecutar pg_dump
-        # Usamos env vars para pasar la password de forma más segura si es posible,
-        # pero pg_dump acepta la URL completa.
-        result = subprocess.run(['pg_dump', url, '-f', backup_filename], capture_output=True, text=True)
+        # 3. Ejecutar pg_dump con PGPASSWORD para evitar errores de conexión
+        env = os.environ.copy()
+        env['PGPASSWORD'] = db_password
+        
+        cmd = [
+            'pg_dump',
+            '-h', db_host,
+            '-p', db_port,
+            '-U', db_user,
+            '-f', backup_filename,
+            db_name
+        ]
+        
+        print(f"📡 Conectando a {db_host}:{db_port}...")
+        result = subprocess.run(cmd, env=env, capture_output=True, text=True)
         
         if result.returncode != 0:
             print(f"❌ Error en pg_dump:\n{result.stderr}")
