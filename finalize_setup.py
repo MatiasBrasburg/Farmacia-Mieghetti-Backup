@@ -32,3 +32,4 @@ def check_and_send():
 if __name__ == "__main__":
     check_and_send()
 # Last Sync Check: $(Get-Date)
+# Force Trigger: $(Get-Date)
