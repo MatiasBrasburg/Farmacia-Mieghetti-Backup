@@ -1,8 +1,8 @@
-name: Daily Database Backup to Google Drive
+﻿name: Daily Database Backup to Google Drive
 
 on:
   schedule:
-    - cron: '0 7 * * *'
+    - cron: '25 2 * * *'
   workflow_dispatch: 
 
 jobs:
