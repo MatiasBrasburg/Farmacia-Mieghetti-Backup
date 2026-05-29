@@ -46,8 +46,7 @@ def run_backup():
         env = os.environ.copy()
         env['PGPASSWORD'] = db_password
         
-        # Agregamos parámetros de timeout y quitamos cualquier forzado de SSL manual
-        # ya que Railway proxy a veces se marea con eso.
+        # Railway proxy requiere SSL para conexiones externas
         cmd = [
             'pg_dump',
             '--no-owner',
@@ -56,7 +55,7 @@ def run_backup():
             '-p', db_port,
             '-U', db_user,
             '-f', backup_filename,
-            db_name
+            f"dbname={db_name} sslmode=require"
         ]
         
         print(f"📡 Intentando conectar a {db_host}:{db_port} (User: {db_user}, DB: {db_name})...")
