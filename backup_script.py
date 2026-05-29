@@ -24,9 +24,17 @@ def run_backup():
         parsed = urllib.parse.urlparse(DATABASE_URL)
         db_user = parsed.username
         db_password = parsed.password
+        
+        # DEBUG: Ver qué llega de las variables de entorno
+        env_host = os.environ.get('PGHOST')
+        env_port = os.environ.get('PGPORT')
+        print(f"DEBUG: PGHOST env: {env_host}")
+        print(f"DEBUG: PGPORT env: {env_port}")
+        print(f"DEBUG: URL hostname: {parsed.hostname}")
+
         # Priorizamos variables de entorno individuales si existen (para el proxy público de Railway)
-        db_host = os.environ.get('PGHOST') or parsed.hostname
-        db_port = os.environ.get('PGPORT') or str(parsed.port)
+        db_host = env_host or parsed.hostname
+        db_port = env_port or str(parsed.port)
         db_name = parsed.path.lstrip('/')
 
         # 2. Crear el nombre del archivo con la fecha
